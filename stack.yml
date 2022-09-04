@@ -1,0 +1,55 @@
+version: "3.8"
+services:
+  jaeger:
+    networks:
+      - backend
+      - jaeger
+    image: jaegertracing/all-in-one:latest
+    configs:
+      - source: jaeger-ui.json
+        target: /etc/jaeger/jaeger-ui.json
+    command: --query.ui-config /etc/jaeger/jaeger-ui.json
+    environment:
+      - METRICS_STORAGE_TYPE=prometheus
+      - PROMETHEUS_SERVER_URL=http://prometheus:9090
+#    ports:
+#      - "14250:14250"
+#      - "14268:14268"
+#      - "6831:6831/udp"
+#      - "16687:16686"
+#      - "16685:16685"
+
+  otel_collector:
+    networks:
+      - backend
+      - jaeger
+    image: otel/opentelemetry-collector-contrib:latest
+    configs:
+      - source: otel-collector-config.yml
+        target: /etc/otelcol/otel-collector-config.yml
+    command: --config /etc/otelcol/otel-collector-config.yml
+#    ports:
+#      - "14278:14278"
+    depends_on:
+      - jaeger
+
+      
+  prometheus:
+    networks:
+      - backend
+    image: prom/prometheus:latest
+    configs:
+      - source: jaeger_prometheus
+        target: /etc/prometheus/prometheus.yml
+networks:
+  backend:
+  jaeger:
+    external: true
+  
+configs:
+  jaeger_prometheus:
+    external: true
+  otel-collector-config.yml:
+    external: true
+  jaeger-ui.json:
+    external: true
